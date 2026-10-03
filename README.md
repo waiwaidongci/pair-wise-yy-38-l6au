@@ -32,6 +32,17 @@ python3 app.py --db ./data.db --port 8315
 - `POST /api/items/{id}/transition`，必须提交`expected_version`
 - `GET /api/audit`
 
+### 处置批次（现场反馈 + 总工授权）
+
+把「值班员现场反馈」与「总工授权」两步收进同一处置批次，避免只留半条处理痕迹：
+
+- `POST /api/items/{id}/batches`：值班员提交现场反馈（批次前半程），需带 `request_no`。反馈记录、状态复核（draft→checked）、审计与批次在同一事务内写入；同一 `request_no` 重复提交幂等返回。
+- `POST /api/batches/{request_no}/authorize`：总工授权（批次后半程），需带 `expected_version`。批次与调度指令共用同一版本，按版本做 compare-and-swap，先到者生效；冲突时批次标记为 `conflict` 且不写授权审计。
+- `GET /api/batches`：批次列表，可按 `?status=`、`?item_id=` 过滤。每项含 `progress`（`feedback_done`/`committed`/`conflict`）与 `recoverable`，用于区分批次进度、冲突与待恢复项。
+- `GET /api/batches/{request_no}`：单个批次详情。
+
+后半程失败后，按同一 `request_no` 并携带新的 `expected_version` 重新授权即可恢复，审计不重复追加。首次升级旧库时，会为历史审计按原顺序补 `batch_id` 归属（`schema_migrations` 保证只执行一次），`batch_id` 不参与哈希载荷，哈希链保持不变。
+
 允许角色：duty_officer, chief_engineer, dispatcher, viewer。库位超过汛限或入库流量上升时提升紧迫度；授权前必须有复核记录，执行后仍要闭环现场反馈。
 
 ## 测试

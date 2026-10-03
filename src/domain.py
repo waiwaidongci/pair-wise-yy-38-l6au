@@ -11,6 +11,7 @@ class NotFoundError(DomainError): kind=ErrorKind.NOT_FOUND
 class PermissionDenied(DomainError): kind=ErrorKind.FORBIDDEN
 class ConflictError(DomainError): kind=ErrorKind.CONFLICT
 SEVERITIES=['routine', 'attention', 'urgent', 'emergency']; STATES=['draft', 'checked', 'authorized', 'executed', 'closed']; ROLES=['duty_officer', 'chief_engineer', 'dispatcher', 'viewer']
+BATCH_STATUSES=['pending', 'committed', 'conflict']; BATCH_STAGES=['feedback', 'authorize', 'legacy']
 @dataclass(frozen=True)
 class Item:
     id:int; title:str; description:str; severity:str; quantity:float; threshold:float; status:str; version:int; external_ref:Optional[str]; created_by:str; created_at:str; updated_at:str
